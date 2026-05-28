@@ -55,7 +55,9 @@ bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 async def on_ready():
     init_db()
     for guild in bot.guilds:
-        await bot.tree.sync(guild=guild)
+        bot.tree.copy_global_to(guild=guild)
+        synced = await bot.tree.sync(guild=guild)
+        print(f"Synced {len(synced)} commands to {guild.name}")
     print(f"Logged in as {bot.user}")
 
 
