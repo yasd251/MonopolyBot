@@ -1,0 +1,627 @@
+{
+  "meta": {
+    "edition": "Hasbro Classic US Monopoly",
+    "image_size": "2000x2000",
+    "notes": {
+      "color_group_monopoly_rent_multiplier": "When a player owns ALL properties in a color group (a monopoly), unimproved rent is doubled.",
+      "mortgage": "A mortgaged property collects no rent. To unmortgage, pay mortgage_value + 10% interest.",
+      "houses_hotels": "You must build evenly across a color group. A hotel replaces 4 houses (4 houses returned to bank).",
+      "railroad_rent": "Rent is based on how many railroads the same player owns total.",
+      "utility_rent": "Rent is based on the dice roll that landed the player on the utility."
+    }
+  },
+  "squares": [
+    {
+      "square": 0,
+      "name": "GO",
+      "type": "go",
+      "image": "00_GO.png",
+      "effect": "Collect $200 salary when landing on or passing GO."
+    },
+    {
+      "square": 1,
+      "name": "Mediterranean Avenue",
+      "type": "property",
+      "image": "01_Mediterranean_Ave.png",
+      "color_group": "brown",
+      "price": 60,
+      "mortgage_value": 30,
+      "house_cost": 50,
+      "hotel_cost": 50,
+      "rent": {
+        "0": 2,
+        "1": 10,
+        "2": 30,
+        "3": 90,
+        "4": 160,
+        "5": 250
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 2,
+      "name": "Community Chest",
+      "type": "community_chest",
+      "image": "02_Community_Chest.png",
+      "effect": "Draw a Community Chest card and follow its instructions."
+    },
+    {
+      "square": 3,
+      "name": "Baltic Avenue",
+      "type": "property",
+      "image": "03_Baltic_Ave.png",
+      "color_group": "brown",
+      "price": 60,
+      "mortgage_value": 30,
+      "house_cost": 50,
+      "hotel_cost": 50,
+      "rent": {
+        "0": 4,
+        "1": 20,
+        "2": 60,
+        "3": 180,
+        "4": 320,
+        "5": 450
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 4,
+      "name": "Income Tax",
+      "type": "tax",
+      "image": "04_Income_Tax.png",
+      "amount": 200,
+      "effect": "Pay $200 to the bank."
+    },
+    {
+      "square": 5,
+      "name": "Reading Railroad",
+      "type": "railroad",
+      "image": "05_Reading_Railroad.png",
+      "price": 200,
+      "mortgage_value": 100,
+      "rent": {
+        "one_railroad": 25,
+        "two_railroads": 50,
+        "three_railroads": 100,
+        "four_railroads": 200
+      },
+      "effect": "Rent doubles for each additional railroad owned by the same player."
+    },
+    {
+      "square": 6,
+      "name": "Oriental Avenue",
+      "type": "property",
+      "image": "06_Oriental_Ave.png",
+      "color_group": "light_blue",
+      "price": 100,
+      "mortgage_value": 50,
+      "house_cost": 50,
+      "hotel_cost": 50,
+      "rent": {
+        "0": 6,
+        "1": 30,
+        "2": 90,
+        "3": 270,
+        "4": 400,
+        "5": 550
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 7,
+      "name": "Chance",
+      "type": "chance",
+      "image": "07_Chance.png",
+      "effect": "Draw a Chance card and follow its instructions."
+    },
+    {
+      "square": 8,
+      "name": "Vermont Avenue",
+      "type": "property",
+      "image": "08_Vermont_Ave.png",
+      "color_group": "light_blue",
+      "price": 100,
+      "mortgage_value": 50,
+      "house_cost": 50,
+      "hotel_cost": 50,
+      "rent": {
+        "0": 6,
+        "1": 30,
+        "2": 90,
+        "3": 270,
+        "4": 400,
+        "5": 550
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 9,
+      "name": "Connecticut Avenue",
+      "type": "property",
+      "image": "09_Connecticut_Ave.png",
+      "color_group": "light_blue",
+      "price": 120,
+      "mortgage_value": 60,
+      "house_cost": 50,
+      "hotel_cost": 50,
+      "rent": {
+        "0": 8,
+        "1": 40,
+        "2": 100,
+        "3": 300,
+        "4": 450,
+        "5": 600
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 10,
+      "name": "Just Visiting / Jail",
+      "type": "jail",
+      "image": "10_Just_Visiting.png",
+      "effect": "No effect when visiting. Players sent to Jail must pay $50 fine, use a Get Out of Jail Free card, or roll doubles within 3 turns."
+    },
+    {
+      "square": 11,
+      "name": "St. Charles Place",
+      "type": "property",
+      "image": "11_St_Charles_Place.png",
+      "color_group": "pink",
+      "price": 140,
+      "mortgage_value": 70,
+      "house_cost": 100,
+      "hotel_cost": 100,
+      "rent": {
+        "0": 10,
+        "1": 50,
+        "2": 150,
+        "3": 450,
+        "4": 625,
+        "5": 750
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 12,
+      "name": "Electric Company",
+      "type": "utility",
+      "image": "12_Electric_Company.png",
+      "price": 150,
+      "mortgage_value": 75,
+      "rent": {
+        "one_utility": "4x dice roll",
+        "two_utilities": "10x dice roll"
+      },
+      "effect": "If one utility owned: rent = 4\u00d7 the dice roll. If both utilities owned: rent = 10\u00d7 the dice roll."
+    },
+    {
+      "square": 13,
+      "name": "States Avenue",
+      "type": "property",
+      "image": "13_States_Ave.png",
+      "color_group": "pink",
+      "price": 140,
+      "mortgage_value": 70,
+      "house_cost": 100,
+      "hotel_cost": 100,
+      "rent": {
+        "0": 10,
+        "1": 50,
+        "2": 150,
+        "3": 450,
+        "4": 625,
+        "5": 750
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 14,
+      "name": "Virginia Avenue",
+      "type": "property",
+      "image": "14_Virginia_Ave.png",
+      "color_group": "pink",
+      "price": 160,
+      "mortgage_value": 80,
+      "house_cost": 100,
+      "hotel_cost": 100,
+      "rent": {
+        "0": 12,
+        "1": 60,
+        "2": 180,
+        "3": 500,
+        "4": 700,
+        "5": 900
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 15,
+      "name": "Pennsylvania Railroad",
+      "type": "railroad",
+      "image": "15_Pennsylvania_Railroad.png",
+      "price": 200,
+      "mortgage_value": 100,
+      "rent": {
+        "one_railroad": 25,
+        "two_railroads": 50,
+        "three_railroads": 100,
+        "four_railroads": 200
+      },
+      "effect": "Rent doubles for each additional railroad owned by the same player."
+    },
+    {
+      "square": 16,
+      "name": "St. James Place",
+      "type": "property",
+      "image": "16_St_James_Place.png",
+      "color_group": "orange",
+      "price": 180,
+      "mortgage_value": 90,
+      "house_cost": 100,
+      "hotel_cost": 100,
+      "rent": {
+        "0": 14,
+        "1": 70,
+        "2": 200,
+        "3": 550,
+        "4": 750,
+        "5": 950
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 17,
+      "name": "Community Chest",
+      "type": "community_chest",
+      "image": "17_Community_Chest.png",
+      "effect": "Draw a Community Chest card and follow its instructions."
+    },
+    {
+      "square": 18,
+      "name": "Tennessee Avenue",
+      "type": "property",
+      "image": "18_Tennessee_Ave.png",
+      "color_group": "orange",
+      "price": 180,
+      "mortgage_value": 90,
+      "house_cost": 100,
+      "hotel_cost": 100,
+      "rent": {
+        "0": 14,
+        "1": 70,
+        "2": 200,
+        "3": 550,
+        "4": 750,
+        "5": 950
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 19,
+      "name": "New York Avenue",
+      "type": "property",
+      "image": "19_New_York_Ave.png",
+      "color_group": "orange",
+      "price": 200,
+      "mortgage_value": 100,
+      "house_cost": 100,
+      "hotel_cost": 100,
+      "rent": {
+        "0": 16,
+        "1": 80,
+        "2": 220,
+        "3": 600,
+        "4": 800,
+        "5": 1000
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 20,
+      "name": "Free Parking",
+      "type": "free_parking",
+      "image": "20_Free_Parking.png",
+      "effect": "No effect in the official rules. A common house rule places collected taxes here as a jackpot."
+    },
+    {
+      "square": 21,
+      "name": "Kentucky Avenue",
+      "type": "property",
+      "image": "21_Kentucky_Ave.png",
+      "color_group": "red",
+      "price": 220,
+      "mortgage_value": 110,
+      "house_cost": 150,
+      "hotel_cost": 150,
+      "rent": {
+        "0": 18,
+        "1": 90,
+        "2": 250,
+        "3": 700,
+        "4": 875,
+        "5": 1050
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 22,
+      "name": "Chance",
+      "type": "chance",
+      "image": "22_Chance.png",
+      "effect": "Draw a Chance card and follow its instructions."
+    },
+    {
+      "square": 23,
+      "name": "Indiana Avenue",
+      "type": "property",
+      "image": "23_Indiana_Ave.png",
+      "color_group": "red",
+      "price": 220,
+      "mortgage_value": 110,
+      "house_cost": 150,
+      "hotel_cost": 150,
+      "rent": {
+        "0": 18,
+        "1": 90,
+        "2": 250,
+        "3": 700,
+        "4": 875,
+        "5": 1050
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 24,
+      "name": "Illinois Avenue",
+      "type": "property",
+      "image": "24_Illinois_Ave.png",
+      "color_group": "red",
+      "price": 240,
+      "mortgage_value": 120,
+      "house_cost": 150,
+      "hotel_cost": 150,
+      "rent": {
+        "0": 20,
+        "1": 100,
+        "2": 300,
+        "3": 750,
+        "4": 925,
+        "5": 1100
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 25,
+      "name": "B&O Railroad",
+      "type": "railroad",
+      "image": "25_BO_Railroad.png",
+      "price": 200,
+      "mortgage_value": 100,
+      "rent": {
+        "one_railroad": 25,
+        "two_railroads": 50,
+        "three_railroads": 100,
+        "four_railroads": 200
+      },
+      "effect": "Rent doubles for each additional railroad owned by the same player."
+    },
+    {
+      "square": 26,
+      "name": "Atlantic Avenue",
+      "type": "property",
+      "image": "26_Atlantic_Ave.png",
+      "color_group": "yellow",
+      "price": 260,
+      "mortgage_value": 130,
+      "house_cost": 150,
+      "hotel_cost": 150,
+      "rent": {
+        "0": 22,
+        "1": 110,
+        "2": 330,
+        "3": 800,
+        "4": 975,
+        "5": 1150
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 27,
+      "name": "Ventnor Avenue",
+      "type": "property",
+      "image": "27_Ventnor_Ave.png",
+      "color_group": "yellow",
+      "price": 260,
+      "mortgage_value": 130,
+      "house_cost": 150,
+      "hotel_cost": 150,
+      "rent": {
+        "0": 22,
+        "1": 110,
+        "2": 330,
+        "3": 800,
+        "4": 975,
+        "5": 1150
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 28,
+      "name": "Water Works",
+      "type": "utility",
+      "image": "28_Water_Works.png",
+      "price": 150,
+      "mortgage_value": 75,
+      "rent": {
+        "one_utility": "4x dice roll",
+        "two_utilities": "10x dice roll"
+      },
+      "effect": "If one utility owned: rent = 4\u00d7 the dice roll. If both utilities owned: rent = 10\u00d7 the dice roll."
+    },
+    {
+      "square": 29,
+      "name": "Marvin Gardens",
+      "type": "property",
+      "image": "29_Marvin_Gardens.png",
+      "color_group": "yellow",
+      "price": 280,
+      "mortgage_value": 140,
+      "house_cost": 150,
+      "hotel_cost": 150,
+      "rent": {
+        "0": 24,
+        "1": 120,
+        "2": 360,
+        "3": 850,
+        "4": 1025,
+        "5": 1200
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 30,
+      "name": "Go To Jail",
+      "type": "go_to_jail",
+      "image": "30_Go_To_Jail.png",
+      "effect": "Move directly to Jail. Do not pass GO. Do not collect $200."
+    },
+    {
+      "square": 31,
+      "name": "Pacific Avenue",
+      "type": "property",
+      "image": "31_Pacific_Ave.png",
+      "color_group": "green",
+      "price": 300,
+      "mortgage_value": 150,
+      "house_cost": 200,
+      "hotel_cost": 200,
+      "rent": {
+        "0": 26,
+        "1": 130,
+        "2": 390,
+        "3": 900,
+        "4": 1100,
+        "5": 1275
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 32,
+      "name": "North Carolina Avenue",
+      "type": "property",
+      "image": "32_North_Carolina_Ave.png",
+      "color_group": "green",
+      "price": 300,
+      "mortgage_value": 150,
+      "house_cost": 200,
+      "hotel_cost": 200,
+      "rent": {
+        "0": 26,
+        "1": 130,
+        "2": 390,
+        "3": 900,
+        "4": 1100,
+        "5": 1275
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 33,
+      "name": "Community Chest",
+      "type": "community_chest",
+      "image": "33_Community_Chest.png",
+      "effect": "Draw a Community Chest card and follow its instructions."
+    },
+    {
+      "square": 34,
+      "name": "Pennsylvania Avenue",
+      "type": "property",
+      "image": "34_Pennsylvania_Ave.png",
+      "color_group": "green",
+      "price": 320,
+      "mortgage_value": 160,
+      "house_cost": 200,
+      "hotel_cost": 200,
+      "rent": {
+        "0": 28,
+        "1": 150,
+        "2": 450,
+        "3": 1000,
+        "4": 1200,
+        "5": 1400
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 35,
+      "name": "Short Line Railroad",
+      "type": "railroad",
+      "image": "35_Short_Line_Railroad.png",
+      "price": 200,
+      "mortgage_value": 100,
+      "rent": {
+        "one_railroad": 25,
+        "two_railroads": 50,
+        "three_railroads": 100,
+        "four_railroads": 200
+      },
+      "effect": "Rent doubles for each additional railroad owned by the same player."
+    },
+    {
+      "square": 36,
+      "name": "Chance",
+      "type": "chance",
+      "image": "36_Chance.png",
+      "effect": "Draw a Chance card and follow its instructions."
+    },
+    {
+      "square": 37,
+      "name": "Park Place",
+      "type": "property",
+      "image": "37_Park_Place.png",
+      "color_group": "dark_blue",
+      "price": 350,
+      "mortgage_value": 175,
+      "house_cost": 200,
+      "hotel_cost": 200,
+      "rent": {
+        "0": 35,
+        "1": 175,
+        "2": 500,
+        "3": 1100,
+        "4": 1300,
+        "5": 1500
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    },
+    {
+      "square": 38,
+      "name": "Luxury Tax",
+      "type": "tax",
+      "image": "38_Luxury_Tax.png",
+      "amount": 100,
+      "effect": "Pay $100 to the bank."
+    },
+    {
+      "square": 39,
+      "name": "Boardwalk",
+      "type": "property",
+      "image": "39_Boardwalk.png",
+      "color_group": "dark_blue",
+      "price": 400,
+      "mortgage_value": 200,
+      "house_cost": 200,
+      "hotel_cost": 200,
+      "rent": {
+        "0": 50,
+        "1": 200,
+        "2": 600,
+        "3": 1400,
+        "4": 1700,
+        "5": 2000
+      },
+      "color_group_monopoly_rent_multiplier": 2
+    }
+  ]
+}

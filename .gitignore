@@ -1,0 +1,25 @@
+# Sensitive
+config.py
+
+# Claude Code
+CLAUDE.md
+
+# Database
+monopoly.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Virtual environments
+venv/
+.env/
+env/
