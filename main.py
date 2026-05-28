@@ -4,6 +4,7 @@ import random
 import ssl
 import certifi
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 import game.monopoly as monopoly
@@ -21,6 +22,11 @@ _CHANCE_CARDS = _CHANCE_DATA["chance"]
 _COMMUNITY_CHEST_CARDS = _CHANCE_DATA["communitychest"]
 
 MAX_PLAYERS = 8
+
+_PROPERTY_NAMES = [
+    name for name, sq in monopoly._SQUARES.items()
+    if sq.get("type") == "property"
+]
 
 COLOR_MAP = {
     "red":    0xFF4444,
@@ -55,6 +61,7 @@ bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 async def on_ready():
     init_db()
     for guild in bot.guilds:
+        bot.tree.clear_commands(guild=guild)
         bot.tree.copy_global_to(guild=guild)
         synced = await bot.tree.sync(guild=guild)
         print(f"Synced {len(synced)} commands to {guild.name}")
@@ -135,6 +142,7 @@ async def join(ctx):
 
 @bot.hybrid_command(name="roll", description="Roll the dice and move")
 async def roll(ctx):
+    await ctx.defer()
     chat_id = str(ctx.channel.id)
     state = monopoly.load_state(chat_id)
 
@@ -228,6 +236,7 @@ async def payjailfine(ctx):
 
 @bot.hybrid_command(name="board", description="Show the current board")
 async def board(ctx):
+    await ctx.defer()
     chat_id = str(ctx.channel.id)
     state = monopoly.load_state(chat_id)
 
@@ -623,7 +632,15 @@ async def communitychest(ctx):
     await ctx.send(embed=embed)
 
 
+async def autocomplete_property(interaction: discord.Interaction, current: str):
+    return [
+        app_commands.Choice(name=name, value=name)
+        for name in _PROPERTY_NAMES
+        if current.lower() in name.lower()
+    ][:25]
+
 @bot.hybrid_command(name="inspect", description="Inspect the details of a property")
+@app_commands.autocomplete(property_name=autocomplete_property)
 async def inspect(ctx, *, property_name: str):
     name = monopoly.resolve_property_name(property_name)
     if name is None:

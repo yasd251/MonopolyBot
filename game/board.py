@@ -1,7 +1,7 @@
 # game/board.py
 import io
 import os
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 _BOARD_IMAGE = os.path.join(os.path.dirname(__file__), "../assets/board.png")
 
@@ -102,7 +102,7 @@ def _draw_circle(draw, x, y, color):
 
 def render_board_with_card(state, card_path, board_path=_BOARD_IMAGE):
     board = render_board(state, board_path)
-    card = Image.open(card_path).convert("RGBA")
+    card = ImageOps.exif_transpose(Image.open(card_path)).convert("RGBA")
 
     card_scaled = card.resize(
         (int(card.width * board.height / card.height), board.height),
