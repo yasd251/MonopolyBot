@@ -11,7 +11,9 @@ JAIL_FINE = 50
 
 _BOARD_PATH = os.path.join(os.path.dirname(__file__), "../assets/monopoly (1).json")
 with open(_BOARD_PATH) as _f:
-    _SQUARES = {sq["name"]: sq for sq in json.load(_f)["squares"]}
+    _RAW_SQUARES = json.load(_f)["squares"]
+
+_SQUARES = {sq["name"]: sq for sq in _RAW_SQUARES}
 
 # color_group -> [property names]
 _COLOR_GROUPS: dict[str, list[str]] = {}
@@ -19,9 +21,12 @@ for _sq in _SQUARES.values():
     if _sq.get("type") == "property":
         _COLOR_GROUPS.setdefault(_sq["color_group"], []).append(_sq["name"])
 
-# board position -> square name
-_POSITION_TO_NAME: dict[int, str] = {
-    sq["square"]: name for name, sq in _SQUARES.items()
+# board position -> square name (built from raw list to handle duplicate names like Chance/Community Chest)
+_POSITION_TO_NAME: dict[int, str] = {sq["square"]: sq["name"] for sq in _RAW_SQUARES}
+
+# board position -> image filename (built from raw list for the same reason)
+_POSITION_TO_IMAGE: dict[int, str] = {
+    sq["square"]: sq["image"] for sq in _RAW_SQUARES if "image" in sq
 }
 
 # lowercase name -> canonical name
@@ -199,10 +204,7 @@ def square_name_at(position):
     return _POSITION_TO_NAME.get(position)
 
 def square_image_path(position):
-    name = _POSITION_TO_NAME.get(position)
-    if name is None:
-        return None
-    image_file = _SQUARES[name].get("image")
+    image_file = _POSITION_TO_IMAGE.get(position)
     if image_file is None:
         return None
     return os.path.join(os.path.dirname(__file__), "../assets/squares", image_file)

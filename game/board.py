@@ -59,7 +59,7 @@ def get_player_offsets(radius):
     ]
 
 
-PLAYER_RADIUS = 18
+PLAYER_RADIUS = 24
 
 def get_offsets(square):
     offsets = get_player_offsets(PLAYER_RADIUS)
@@ -93,11 +93,20 @@ def render_board(state, board_path=_BOARD_IMAGE):
 
 def _draw_circle(draw, x, y, color):
     r = PLAYER_RADIUS
+    # Main circle with black outline
     draw.ellipse(
         [x - r, y - r, x + r, y + r],
         fill=color,
+        outline="black",
+        width=5,
+    )
+    # Inner white ring
+    ir = r - 7
+    draw.ellipse(
+        [x - ir, y - ir, x + ir, y + ir],
+        fill=None,
         outline="white",
-        width=2
+        width=2,
     )
 
 def render_board_with_card(state, card_path, board_path=_BOARD_IMAGE):

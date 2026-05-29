@@ -25,7 +25,7 @@ MAX_PLAYERS = 8
 
 _PROPERTY_NAMES = [
     name for name, sq in monopoly._SQUARES.items()
-    if sq.get("type") == "property"
+    if sq.get("type") in ("property", "railroad", "utility")
 ]
 
 COLOR_MAP = {
@@ -50,6 +50,67 @@ COLOR_GROUP_MAP = {
     "green":     0x008000,
     "dark_blue": 0x00008B,
 }
+
+def property_embed(name, sq, state, viewer_id=None):
+    """Return a discord.Embed for a purchasable square, annotated with ownership from state."""
+    sq_type = sq.get("type")
+    prop_data = state["properties"].get(name, {}) if state else {}
+    owner_id = prop_data.get("owner")
+
+    if owner_id is None:
+        ownership = "🏦 Unowned"
+    elif viewer_id and owner_id == viewer_id:
+        ownership = "✅ You own this"
+    else:
+        owner_name = state["players"].get(owner_id, {}).get("name", "Unknown") if state else "Unknown"
+        ownership = f"Owned by **{owner_name}**"
+
+    if sq_type == "property":
+        rent = sq["rent"]
+        embed = discord.Embed(title=name, color=COLOR_GROUP_MAP.get(sq["color_group"], 0x888888))
+        embed.add_field(name="Owner", value=ownership, inline=False)
+        embed.add_field(name="Price", value=f"${sq['price']:,}", inline=True)
+        embed.add_field(name="Mortgage Value", value=f"${sq['mortgage_value']:,}", inline=True)
+        embed.add_field(name="House Cost", value=f"${sq['house_cost']:,}", inline=True)
+        embed.add_field(name="Hotel Cost", value=f"${sq['hotel_cost']:,}", inline=True)
+        embed.add_field(name="Color Group", value=sq["color_group"].replace("_", " ").title(), inline=True)
+        embed.add_field(name="Rent", value=(
+            f"Unimproved: ${rent['0']:,}\n"
+            f"1 House: ${rent['1']:,}\n"
+            f"2 Houses: ${rent['2']:,}\n"
+            f"3 Houses: ${rent['3']:,}\n"
+            f"4 Houses: ${rent['4']:,}\n"
+            f"Hotel: ${rent['5']:,}"
+        ), inline=False)
+
+    elif sq_type == "railroad":
+        rent = sq["rent"]
+        embed = discord.Embed(title=name, color=0x2C2C2C)
+        embed.add_field(name="Owner", value=ownership, inline=False)
+        embed.add_field(name="Price", value=f"${sq['price']:,}", inline=True)
+        embed.add_field(name="Mortgage Value", value=f"${sq['mortgage_value']:,}", inline=True)
+        embed.add_field(name="Rent", value=(
+            f"1 Railroad: ${rent['one_railroad']:,}\n"
+            f"2 Railroads: ${rent['two_railroads']:,}\n"
+            f"3 Railroads: ${rent['three_railroads']:,}\n"
+            f"4 Railroads: ${rent['four_railroads']:,}"
+        ), inline=False)
+        embed.add_field(name="Note", value=sq.get("effect", ""), inline=False)
+
+    else:  # utility
+        rent = sq["rent"]
+        embed = discord.Embed(title=name, color=0x00AACC)
+        embed.add_field(name="Owner", value=ownership, inline=False)
+        embed.add_field(name="Price", value=f"${sq['price']:,}", inline=True)
+        embed.add_field(name="Mortgage Value", value=f"${sq['mortgage_value']:,}", inline=True)
+        embed.add_field(name="Rent", value=(
+            f"1 Utility: {rent['one_utility']}\n"
+            f"2 Utilities: {rent['two_utilities']}"
+        ), inline=False)
+        embed.add_field(name="Note", value=sq.get("effect", ""), inline=False)
+
+    return embed
+
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -97,8 +158,8 @@ async def begin(ctx):
         await ctx.send("The game has already started.")
         return
 
-    if len(state["players"]) < 2:
-        await ctx.send("You need at least 2 players to start.")
+    if len(state["players"]) < 1:
+        await ctx.send("You need at least 1 player to start.")
         return
 
     monopoly.start_game(chat_id)
@@ -179,15 +240,21 @@ async def roll(ctx):
             msg += "\nRolled a double! You can `/roll` again."
 
     state = monopoly.load_state(chat_id)
+    balance = state["players"][user_id]["money"]
+    msg += f"\n💰 Your balance: **${balance:,}**"
+
     card_path = monopoly.square_image_path(result["new_position"]) if not result["in_jail"] else None
-
-    if card_path:
-        rendered = render_board_with_card(state, card_path)
-    else:
-        rendered = render_board(state)
-
+    rendered = render_board_with_card(state, card_path) if card_path else render_board(state)
     buf = board_to_bytes(rendered)
-    await ctx.send(msg, file=discord.File(buf, filename="board.png"))
+
+    prop_embed = None
+    if not result["in_jail"] and not result["sent_to_jail"]:
+        landed_name = monopoly.square_name_at(result["new_position"])
+        landed_sq = monopoly._SQUARES.get(landed_name, {})
+        if landed_sq.get("type") in ("property", "railroad", "utility"):
+            prop_embed = property_embed(landed_name, landed_sq, state, user_id)
+
+    await ctx.send(msg, file=discord.File(buf, filename="board.png"), embed=prop_embed)
 
 
 @bot.hybrid_command(name="endturn", description="End your turn")
@@ -357,8 +424,8 @@ async def sellhouse(ctx, *, property_name: str):
     )
 
 
-@bot.hybrid_command(name="buyhouse", description="Buy a house for a property")
-async def buyhouse(ctx, *, property_name: str):
+@bot.hybrid_command(name="buyhouse", description="Buy a house on the property you are currently standing on")
+async def buyhouse(ctx):
     chat_id = str(ctx.channel.id)
     state = monopoly.load_state(chat_id)
 
@@ -367,6 +434,14 @@ async def buyhouse(ctx, *, property_name: str):
         return
 
     user_id = str(ctx.author.id)
+    position = state["players"][user_id].get("position")
+    property_name = monopoly.square_name_at(position)
+    sq = monopoly._SQUARES.get(property_name, {})
+
+    if sq.get("type") != "property":
+        sq_type = sq.get("type", "square")
+        await ctx.send(f"**{property_name}** is a {sq_type.replace('_', ' ')} — you can't build houses here.")
+        return
 
     try:
         result = monopoly.buy_house(chat_id, user_id, property_name)
@@ -443,8 +518,10 @@ async def buyproperty(ctx):
         await ctx.send(str(e))
         return
 
+    state = monopoly.load_state(chat_id)
+    balance = state["players"][user_id]["money"]
     await ctx.send(
-        f"{ctx.author.display_name} bought **{result['property']}** for ${result['price']:,}!"
+        f"{ctx.author.display_name} bought **{result['property']}** for ${result['price']:,}!\n💰 Your balance: **${balance:,}**"
     )
 
 
@@ -648,30 +725,15 @@ async def inspect(ctx, *, property_name: str):
         return
 
     sq = monopoly._SQUARES.get(name)
-    if not sq or sq.get("type") != "property":
+    sq_type = sq.get("type") if sq else None
+    if not sq or sq_type not in ("property", "railroad", "utility"):
         await ctx.send(f"**{name}** is not a purchasable property.")
         return
 
-    rent = sq["rent"]
-    group_color = COLOR_GROUP_MAP.get(sq["color_group"], 0x888888)
-    embed = discord.Embed(title=name, color=group_color)
-    embed.add_field(name="Price", value=f"${sq['price']:,}", inline=True)
-    embed.add_field(name="Mortgage Value", value=f"${sq['mortgage_value']:,}", inline=True)
-    embed.add_field(name="House Cost", value=f"${sq['house_cost']:,}", inline=True)
-    embed.add_field(name="Hotel Cost", value=f"${sq['hotel_cost']:,}", inline=True)
-    embed.add_field(name="Color Group", value=sq["color_group"].replace("_", " ").title(), inline=True)
-
-    rent_lines = (
-        f"Unimproved: ${rent['0']:,}\n"
-        f"1 House: ${rent['1']:,}\n"
-        f"2 Houses: ${rent['2']:,}\n"
-        f"3 Houses: ${rent['3']:,}\n"
-        f"4 Houses: ${rent['4']:,}\n"
-        f"Hotel: ${rent['5']:,}"
-    )
-    embed.add_field(name="Rent", value=rent_lines, inline=False)
-
-    await ctx.send(embed=embed)
+    chat_id = str(ctx.channel.id)
+    state = monopoly.load_state(chat_id)
+    user_id = str(ctx.author.id)
+    await ctx.send(embed=property_embed(name, sq, state, user_id))
 
 
 @bot.hybrid_command(name="inventory", description="Check a player's inventory (defaults to yourself)")
@@ -709,24 +771,47 @@ async def inventory(ctx, member: discord.Member = None):
     owned = player.get("properties", [])
     if owned:
         lines = []
-        for name in owned:
-            prop = state["properties"].get(name, {})
+        for prop_name in owned:
+            prop = state["properties"].get(prop_name, {})
+            sq = monopoly._SQUARES.get(prop_name, {})
+            sq_type = sq.get("type", "property")
             houses = prop.get("houses", 0)
             mortgaged = prop.get("mortgaged", False)
+            position = sq.get("square", "?")
+            mortgage_val = sq.get("mortgage_value", 0)
+            prefix = "❌ " if mortgaged else ""
 
             if mortgaged:
-                status = "Mortgaged"
-            elif houses == 5:
-                status = "Hotel"
-            elif houses > 0:
-                status = f"{houses} house{'s' if houses > 1 else ''}"
-            else:
-                status = "Unimproved"
+                line = f"{prefix}**{prop_name}** (#{position}) — Mortgaged (Mortgage Value - ${mortgage_val:,})"
+            elif sq_type == "property":
+                if houses == 5:
+                    status = "Hotel"
+                elif houses > 0:
+                    status = f"{houses} House{'s' if houses > 1 else ''}"
+                else:
+                    status = "Unimproved"
+                color_group = sq.get("color_group")
+                group_props = monopoly._COLOR_GROUPS.get(color_group, [])
+                has_monopoly = all(
+                    state["properties"].get(p, {}).get("owner") == user_id
+                    for p in group_props
+                )
+                base_rent = monopoly.RENT_TABLE[prop_name][houses]
+                current_rent = base_rent * 2 if houses == 0 and has_monopoly else base_rent
+                line = f"{prefix}**{prop_name}** (#{position}) — {status} (Mortgage Value - ${mortgage_val:,}, Current Rent ${current_rent:,})"
+            elif sq_type == "railroad":
+                railroad_names = [n for n, s in monopoly._SQUARES.items() if s.get("type") == "railroad"]
+                owned_rr = sum(1 for rr in railroad_names if state["properties"].get(rr, {}).get("owner") == user_id)
+                rr_keys = ["one_railroad", "two_railroads", "three_railroads", "four_railroads"]
+                current_rent = sq["rent"][rr_keys[max(owned_rr, 1) - 1]]
+                line = f"{prefix}**{prop_name}** (#{position}) — Railroad (Mortgage Value - ${mortgage_val:,}, Current Rent ${current_rent:,})"
+            else:  # utility
+                line = f"{prefix}**{prop_name}** (#{position}) — Utility (Mortgage Value - ${mortgage_val:,}, Rent 4×/10× dice)"
 
-            lines.append(f"**{name}** — {status}")
-        embed.add_field(name="Properties", value="\n".join(lines), inline=False)
+            lines.append(line)
+        embed.add_field(name=f"Properties Owned ({len(owned)})", value="\n".join(lines), inline=False)
     else:
-        embed.add_field(name="Properties", value="None", inline=False)
+        embed.add_field(name="Properties Owned (0)", value="None", inline=False)
 
     await ctx.send(embed=embed)
 
@@ -750,7 +835,7 @@ async def help_command(ctx):
     embed.add_field(name="Properties", value=(
         "`/buyproperty` — Buy the property you are standing on\n"
         "`/transferproperty @player <name>` — Transfer a property to another player\n"
-        "`/buyhouse <name>` — Buy a house (or hotel) on a property\n"
+        "`/buyhouse` — Buy a house (or hotel) on the property you're standing on\n"
         "`/sellhouse <name>` — Sell a house (or hotel) from a property\n"
         "`/mortgage <name>` — Mortgage a property\n"
         "`/unmortgage <name>` — Unmortgage a property"
