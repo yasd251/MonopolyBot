@@ -1,38 +1,4 @@
-- Ping players to move after /endturn 
-- confirmation dialog for buyproperty and show player's balance
-- roll again should be more obvious
-- Circles need to be more apparent on the board
 - draw contracts with two players 
-- if landed on other player property roll needs to say as you land on it
-- if unowned also needs to say, if owned by themselves also say it 
-- buyhouse also no autocomplete
 
 
-- inspect should show who owns it, status of house and all other details
-- host can have power to give / inject money in case of error 
-- undo action 
-- inventory should show property value
-- current turn command
 
-
-- bank give 100 cna't add money when roll inherit money on community chest
-- log 
-- if moveto new position wraps around board it should add 200
-move to needs to be string or number
-
-- get out of jail free card needs to be in inventory 
-    - currently unimplemented
-
-
-- /morgatge and unmorgagede is broken, autocompelte not working 
-- force endturn
-
-
-Properties (number here)
-X emoji if mortgaged Tennessee Avenue (position number here) — Unimproved (Mortgage Value - $Xx , Current Rent $xx)
-Illinois Avenue — Unimproved
-North Carolina Avenue — Unimproved
-Park Place — Unimproved
-Electric Company — Unimproved
-
-- can't inspect railroad or electric company?

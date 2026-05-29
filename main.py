@@ -137,7 +137,7 @@ async def startgame(ctx):
         await ctx.send("A game is already in progress.")
         return
 
-    monopoly.create_game(chat_id)
+    monopoly.create_game(chat_id, host_id=str(ctx.author.id))
     color = monopoly.add_player(chat_id, str(ctx.author.id), ctx.author.display_name)
 
     await ctx.send(
@@ -226,22 +226,26 @@ async def roll(ctx):
         )
     else:
         msg = f"🎲 {ctx.author.display_name} rolled {die1} + {die2} = **{total}**\n"
+        if result.get("released_by_doubles"):
+            msg += "Rolled doubles — released from jail!\n"
         msg += f"Moved to square **{result['new_position']}**"
 
         if result["passed_go"]:
             msg += "\nYou passed GO and collected $200!"
-        if result["sent_to_jail"]:
+        if result.get("triple_doubles_jail"):
+            msg += "\n🚔 Three doubles in a row — go to jail!"
+        elif result["sent_to_jail"]:
             msg += "\nYou've been sent to jail!"
 
-    if die1 == die2:
-        if result["in_jail"]:
-            msg += "\nRolled a double! Use `/releasejail` to get out of jail, then `/roll` to take your turn."
-        else:
-            msg += "\nRolled a double! You can `/roll` again."
+    if die1 == die2 and not result["in_jail"] and not result.get("released_by_doubles") and not result.get("triple_doubles_jail"):
+        msg += "\nRolled a double! You can `/roll` again."
 
     state = monopoly.load_state(chat_id)
     balance = state["players"][user_id]["money"]
     msg += f"\n💰 Your balance: **${balance:,}**"
+
+    if result["in_jail"] and state["players"][user_id].get("jail_free_cards", 0) > 0:
+        msg += "\n🃏 You have a Get Out of Jail Free card! Use `/releasejail` to use it."
 
     card_path = monopoly.square_image_path(result["new_position"]) if not result["in_jail"] else None
     rendered = render_board_with_card(state, card_path) if card_path else render_board(state)
@@ -266,16 +270,16 @@ async def endturn(ctx):
         await ctx.send("No game in progress.")
         return
 
-    user_id = str(ctx.author.id)
-    if user_id != monopoly.current_player_id(state):
-        await ctx.send("It's not your turn.")
+    try:
+        result = monopoly.end_turn(chat_id)
+    except ValueError as e:
+        await ctx.send(str(e))
         return
 
-    result = monopoly.end_turn(chat_id)
     state = monopoly.load_state(chat_id)
     next_name = state["players"][result["next_player_id"]]["name"]
 
-    await ctx.send(f"It's now **{next_name}**'s turn!")
+    await ctx.send(f"It's now **{next_name}**'s turn! <@{result['next_player_id']}>")
 
 
 @bot.hybrid_command(name="payjailfine", description="Pay $50 to get out of jail")
@@ -357,6 +361,69 @@ async def transfermoney(ctx, amount: int, member: discord.Member = None):
         await ctx.send(f"{ctx.author.display_name} paid ${amount:,} to the bank!")
 
 
+@bot.hybrid_command(name="bankgive", description="Give money from the bank to a player (host only)")
+async def bankgive(ctx, member: discord.Member, amount: int):
+    chat_id = str(ctx.channel.id)
+    state = monopoly.load_state(chat_id)
+
+    if state is None or not state["started"]:
+        await ctx.send("No game in progress.")
+        return
+
+    user_id = str(ctx.author.id)
+    if state.get("host_id") != user_id:
+        await ctx.send("Only the host can use this command.")
+        return
+
+    target_id = str(member.id)
+    if target_id not in state["players"]:
+        await ctx.send(f"{member.display_name} is not in this game.")
+        return
+
+    if amount <= 0:
+        await ctx.send("Amount must be greater than 0.")
+        return
+
+    state["players"][target_id]["money"] += amount
+    monopoly.save_state(chat_id, state)
+
+    new_balance = state["players"][target_id]["money"]
+    await ctx.send(
+        f"🏦 Bank gave **${amount:,}** to {member.display_name}.\n💰 Their balance: **${new_balance:,}**"
+    )
+
+
+async def autocomplete_mortgageable(interaction: discord.Interaction, current: str):
+    chat_id = str(interaction.channel.id)
+    user_id = str(interaction.user.id)
+    state = monopoly.load_state(chat_id)
+    if not state:
+        return []
+    player = state["players"].get(user_id, {})
+    return [
+        app_commands.Choice(name=name, value=name)
+        for name in player.get("properties", [])
+        if not state["properties"].get(name, {}).get("mortgaged", False)
+        and current.lower() in name.lower()
+    ][:25]
+
+
+async def autocomplete_unmortgageable(interaction: discord.Interaction, current: str):
+    chat_id = str(interaction.channel.id)
+    user_id = str(interaction.user.id)
+    state = monopoly.load_state(chat_id)
+    if not state:
+        return []
+    player = state["players"].get(user_id, {})
+    return [
+        app_commands.Choice(name=name, value=name)
+        for name in player.get("properties", [])
+        if state["properties"].get(name, {}).get("mortgaged", False)
+        and current.lower() in name.lower()
+    ][:25]
+
+
+@app_commands.autocomplete(property_name=autocomplete_mortgageable)
 @bot.hybrid_command(name="mortgage", description="Mortgage a property")
 async def mortgage(ctx, *, property_name: str):
     chat_id = str(ctx.channel.id)
@@ -379,6 +446,7 @@ async def mortgage(ctx, *, property_name: str):
     )
 
 
+@app_commands.autocomplete(property_name=autocomplete_unmortgageable)
 @bot.hybrid_command(name="unmortgage", description="Unmortgage a property")
 async def unmortgage(ctx, *, property_name: str):
     chat_id = str(ctx.channel.id)
@@ -459,6 +527,22 @@ async def buyhouse(ctx):
         )
 
 
+@bot.hybrid_command(name="currentturn", description="Check whose turn it is currently")
+async def current_turn(ctx):
+    chat_id = str(ctx.channel.id)
+    state = monopoly.load_state(chat_id)
+
+    if state is None or not state["started"]:
+        await ctx.send("No game in progress.")
+        return
+    
+    current_id = monopoly.current_player_id(state)
+    current_name = state["players"][current_id]["name"]
+    await ctx.send(f"It is currently **{current_name}**'s turn! <@{current_id}>")
+
+
+    
+
 @bot.hybrid_command(name="transferproperty", description="Transfer a property to another player")
 async def transferproperty(ctx, member: discord.Member, *, property_name: str):
     chat_id = str(ctx.channel.id)
@@ -491,6 +575,44 @@ async def transferproperty(ctx, member: discord.Member, *, property_name: str):
     )
 
 
+class BuyPropertyView(discord.ui.View):
+    def __init__(self, buyer_id: str, chat_id: str, property_name: str):
+        super().__init__(timeout=60)
+        self.buyer_id = buyer_id
+        self.chat_id = chat_id
+        self.property_name = property_name
+
+    async def _disable(self, interaction: discord.Interaction):
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(label="Buy", style=discord.ButtonStyle.success)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if str(interaction.user.id) != self.buyer_id:
+            await interaction.response.send_message("This isn't your purchase.", ephemeral=True)
+            return
+        await self._disable(interaction)
+        try:
+            result = monopoly.buy_property(self.chat_id, self.buyer_id, self.property_name)
+        except ValueError as e:
+            await interaction.followup.send(str(e))
+            return
+        state = monopoly.load_state(self.chat_id)
+        balance = state["players"][self.buyer_id]["money"]
+        await interaction.followup.send(
+            f"{interaction.user.display_name} bought **{result['property']}** for ${result['price']:,}!\n💰 Your balance: **${balance:,}**"
+        )
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if str(interaction.user.id) != self.buyer_id:
+            await interaction.response.send_message("This isn't your purchase.", ephemeral=True)
+            return
+        await self._disable(interaction)
+        await interaction.followup.send("Purchase cancelled.")
+
+
 @bot.hybrid_command(name="buyproperty", description="Buy the property you are currently standing on")
 async def buyproperty(ctx):
     chat_id = str(ctx.channel.id)
@@ -507,22 +629,23 @@ async def buyproperty(ctx):
 
     position = state["players"][user_id]["position"]
     property_name = monopoly.square_name_at(position)
+    sq = monopoly._SQUARES.get(property_name, {})
 
-    if property_name is None:
+    if "price" not in sq:
         await ctx.send("There is no property to buy here.")
         return
 
-    try:
-        result = monopoly.buy_property(chat_id, user_id, property_name)
-    except ValueError as e:
-        await ctx.send(str(e))
+    if property_name in state["properties"]:
+        await ctx.send(f"**{property_name}** is already owned.")
         return
 
-    state = monopoly.load_state(chat_id)
     balance = state["players"][user_id]["money"]
-    await ctx.send(
-        f"{ctx.author.display_name} bought **{result['property']}** for ${result['price']:,}!\n💰 Your balance: **${balance:,}**"
-    )
+    price = sq["price"]
+
+    embed = property_embed(property_name, sq, state, user_id)
+    embed.description = f"You currently have **${balance:,}**"
+
+    await ctx.send(embed=embed, view=BuyPropertyView(user_id, chat_id, property_name))
 
 
 @bot.hybrid_command(name="releasejail", description="Release a player from jail (defaults to yourself)")
@@ -767,6 +890,10 @@ async def inventory(ctx, member: discord.Member = None):
 
     if player.get("in_jail"):
         embed.add_field(name="Status", value=f"In Jail (turn {player.get('jail_turns', 0)} of 3)", inline=False)
+
+    jail_free = player.get("jail_free_cards", 0)
+    if jail_free > 0:
+        embed.add_field(name="🃏 Get Out of Jail Free", value=f"x{jail_free}", inline=False)
 
     owned = player.get("properties", [])
     if owned:

@@ -51,13 +51,14 @@ def _next_color(state):
             return color
     return "gray"  # fallback, shouldn't happen with max 8 players
 
-def create_game(chat_id):
+def create_game(chat_id, host_id=None):
     state = {
         "players": {},
         "properties": {},
         "turn_order": [],
         "current_turn": 0,
         "started": False,
+        "host_id": host_id,
     }
 
     save_state(chat_id, state)
@@ -72,6 +73,8 @@ def add_player(chat_id, user_id, name):
         "position": 0,
         "money": 1500,
         "in_jail": False,
+        "jail_free_cards": 0,
+        "consecutive_doubles": 0,
         "properties": [],
     }
     state["turn_order"].append(user_id)
@@ -130,6 +133,30 @@ def roll_and_move(chat_id):
     player = state["players"][uid]
 
     if player.get("in_jail"):
+        if die1 == die2:
+            # Doubles releases from jail — move normally but no extra roll
+            player["in_jail"] = False
+            player["jail_turns"] = 0
+            old_position = JAIL_SQUARE
+            new_position = (old_position + total) % 40
+            passed_go = new_position < old_position
+            if passed_go:
+                player["money"] += GO_SALARY
+            player["position"] = new_position
+            save_state(chat_id, state)
+            return {
+                "player_id": uid,
+                "die1": die1,
+                "die2": die2,
+                "total": total,
+                "new_position": new_position,
+                "passed_go": passed_go,
+                "sent_to_jail": False,
+                "in_jail": False,
+                "jail_turns": 0,
+                "released_by_doubles": True,
+            }
+
         player["jail_turns"] = player.get("jail_turns", 0) + 1
         save_state(chat_id, state)
         return {
@@ -144,6 +171,33 @@ def roll_and_move(chat_id):
             "jail_turns": player["jail_turns"],
         }
 
+    is_doubles = die1 == die2
+
+    if is_doubles:
+        player["consecutive_doubles"] = player.get("consecutive_doubles", 0) + 1
+    else:
+        player["consecutive_doubles"] = 0
+
+    # 3 consecutive doubles → go to jail
+    if player["consecutive_doubles"] >= 3:
+        player["consecutive_doubles"] = 0
+        player["in_jail"] = True
+        player["jail_turns"] = 0
+        player["position"] = JAIL_SQUARE
+        save_state(chat_id, state)
+        return {
+            "player_id": uid,
+            "die1": die1,
+            "die2": die2,
+            "total": total,
+            "new_position": JAIL_SQUARE,
+            "passed_go": False,
+            "sent_to_jail": True,
+            "in_jail": True,
+            "jail_turns": 0,
+            "triple_doubles_jail": True,
+        }
+
     old_position = player["position"]
     new_position = (old_position + total) % 40
 
@@ -151,6 +205,7 @@ def roll_and_move(chat_id):
     landed_jail = new_position == GO_TO_JAIL_SQUARE
 
     if landed_jail:
+        player["consecutive_doubles"] = 0
         new_position = JAIL_SQUARE
         player["in_jail"] = True
         passed_go = False
@@ -175,6 +230,13 @@ def roll_and_move(chat_id):
 
 def end_turn(chat_id):
     state = load_state(chat_id)
+    uid = current_player_id(state)
+    player = state["players"][uid]
+
+    if player.get("consecutive_doubles", 0) > 0:
+        raise ValueError("You rolled doubles — you must `/roll` again before ending your turn.")
+
+    player["consecutive_doubles"] = 0
     state["current_turn"] = (state["current_turn"] + 1) % len(state["turn_order"])
     save_state(chat_id, state)
     return {"next_player_id": current_player_id(state)}
@@ -411,6 +473,10 @@ def release_from_jail(chat_id, user_id):
     if not player.get("in_jail"):
         raise ValueError("Player is not in jail")
 
+    if player.get("jail_free_cards", 0) < 1:
+        raise ValueError("You don't have a Get Out of Jail Free card.")
+
+    player["jail_free_cards"] -= 1
     player["in_jail"] = False
     player["jail_turns"] = 0
     save_state(chat_id, state)
