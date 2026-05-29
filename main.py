@@ -956,7 +956,8 @@ async def help_command(ctx):
 
     embed.add_field(name="Turn", value=(
         "`/roll` — Roll the dice and move\n"
-        "`/endturn` — End your turn and pass to the next player"
+        "`/endturn` — End the current turn and pass to the next player\n"
+        "`/currentturn` — Show whose turn it is"
     ), inline=False)
 
     embed.add_field(name="Properties", value=(
@@ -970,12 +971,13 @@ async def help_command(ctx):
 
     embed.add_field(name="Money", value=(
         "`/transfermoney <amount> [@player]` — Transfer money to a player or the bank\n"
-        "`/balances` — Show all player balances"
+        "`/balances` — Show all player balances\n"
+        "`/bankgive @player <amount>` — Give money from the bank to a player (host only)"
     ), inline=False)
 
     embed.add_field(name="Jail", value=(
         "`/payjailfine` — Pay $50 to get out of jail\n"
-        "`/releasejail [@player]` — Release yourself or another player from jail\n"
+        "`/releasejail [@player]` — Use a Get Out of Jail Free card\n"
         "`/jail` — Send yourself to jail"
     ), inline=False)
 
