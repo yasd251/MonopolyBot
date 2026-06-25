@@ -1,6 +1,6 @@
 # MonopolyBot
 
-A self-hosted, self-refereed Monopoly companion bot for Discord. Each channel hosts its own independent game — players manage their own turns, trades, and decisions while the bot tracks all state and renders a live board.
+A self-hosted, self-refereed Monopoly companion bot for Discord. Each channel hosts its own independent game. Players manage their own turns, trades, and decisions while the bot tracks all state and renders a live board.
 
 ## Setup
 
